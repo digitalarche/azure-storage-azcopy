@@ -35,7 +35,7 @@ import (
 	"github.com/Azure/azure-storage-file-go/azfile"
 	chk "gopkg.in/check.v1"
 
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 const defaultFileSize = 1024
@@ -549,10 +549,14 @@ func getDefaultCopyRawInput(src string, dst string) rawCopyCmdArgs {
 	}
 }
 
-func getDefaultRemoveRawInput(src string, targetingBlob bool) rawCopyCmdArgs {
+func getDefaultRemoveRawInput(src string) rawCopyCmdArgs {
 	fromTo := common.EFromTo.BlobTrash()
-	if !targetingBlob {
+	srcURL, _ := url.Parse(src)
+
+	if strings.Contains(srcURL.Host, "file") {
 		fromTo = common.EFromTo.FileTrash()
+	} else if strings.Contains(srcURL.Host, "dfs") {
+		fromTo = common.EFromTo.BlobFSTrash()
 	}
 
 	return rawCopyCmdArgs{

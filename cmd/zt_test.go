@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-storage-azcopy/azbfs"
 	"github.com/Azure/azure-storage-azcopy/ste"
 	"io/ioutil"
 	"net/url"
@@ -40,7 +41,7 @@ import (
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/Azure/azure-storage-file-go/azfile"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 // Hookup to the testing framework
@@ -152,6 +153,13 @@ func getContainerURL(c *chk.C, bsu azblob.ServiceURL) (container azblob.Containe
 	return container, name
 }
 
+func getFileSystemURL(c *chk.C, bsu azbfs.ServiceURL) (fileSystemURL azbfs.FileSystemURL, name string) {
+	name = generateContainerName()
+	fileSystemURL = bsu.NewFileSystemURL(name)
+
+	return fileSystemURL, name
+}
+
 func getBlockBlobURL(c *chk.C, container azblob.ContainerURL, prefix string) (blob azblob.BlockBlobURL, name string) {
 	name = prefix + generateBlobName()
 	blob = container.NewBlockBlobURL(name)
@@ -232,6 +240,30 @@ func createNewContainer(c *chk.C, bsu azblob.ServiceURL) (container azblob.Conta
 	c.Assert(err, chk.IsNil)
 	c.Assert(cResp.StatusCode(), chk.Equals, 201)
 	return container, name
+}
+
+func getBfsSU() azbfs.ServiceURL {
+	name, key := getAccountAndKey()
+	u, _ := url.Parse(fmt.Sprintf("https://%s.dfs.core.windows.net/", name))
+
+	credential := azbfs.NewSharedKeyCredential(name, key)
+	pipeline := azbfs.NewPipeline(credential, azbfs.PipelineOptions{})
+	return azbfs.NewServiceURL(*u, pipeline)
+}
+
+func createNewFileSystem(c *chk.C, bsu azbfs.ServiceURL) (fs azbfs.FileSystemURL, name string) {
+	fs, name = getFileSystemURL(c, bsu)
+
+	cResp, err := fs.Create(ctx)
+	c.Assert(err, chk.IsNil)
+	c.Assert(cResp.StatusCode(), chk.Equals, 201)
+	return fs, name
+}
+
+func deleteFileSystem(c *chk.C, fs azbfs.FileSystemURL) {
+	resp, err := fs.Delete(ctx)
+	c.Assert(err, chk.IsNil)
+	c.Assert(resp.StatusCode(), chk.Equals, 202)
 }
 
 func createNewBlockBlob(c *chk.C, container azblob.ContainerURL, prefix string) (blob azblob.BlockBlobURL, name string) {

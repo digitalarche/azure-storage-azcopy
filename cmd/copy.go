@@ -709,8 +709,8 @@ func (cca *cookedCopyCmdArgs) processCopyJobPartOrders() (err error) {
 			Metadata:                 cca.metadata,
 			NoGuessMimeType:          cca.noGuessMimeType,
 			PreserveLastModifiedTime: cca.preserveLastModifiedTime,
-			PutMd5:              cca.putMd5,
-			MD5ValidationOption: cca.md5ValidationOption,
+			PutMd5:                   cca.putMd5,
+			MD5ValidationOption:      cca.md5ValidationOption,
 		},
 		// source sas is stripped from the source given by the user and it will not be stored in the part plan file.
 		SourceSAS: cca.sourceSAS,
@@ -884,6 +884,16 @@ func (cca *cookedCopyCmdArgs) processCopyJobPartOrders() (err error) {
 		}
 
 		err = e.enumerate()
+	case common.EFromTo.BlobFSTrash():
+		msg, err := removeBfsResource(cca)
+		if err == nil {
+			glcm.Exit(func(format common.OutputFormat) string {
+				return msg
+			}, common.EExitCode.Success())
+		}
+
+		return err
+
 	case common.EFromTo.BlobBlob():
 		e := copyS2SMigrationBlobEnumerator{
 			copyS2SMigrationEnumeratorBase: copyS2SMigrationEnumeratorBase{

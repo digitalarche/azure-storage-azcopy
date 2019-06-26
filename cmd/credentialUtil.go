@@ -34,8 +34,8 @@ import (
 	"github.com/Azure/azure-storage-azcopy/azbfs"
 	"github.com/Azure/azure-storage-azcopy/common"
 	"github.com/Azure/azure-storage-azcopy/ste"
-	"github.com/Azure/azure-storage-file-go/azfile"
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-storage-file-go/azfile"
 )
 
 var once sync.Once
@@ -140,9 +140,10 @@ func getBlobCredentialType(ctx context.Context, blobResourceURL string, canBePub
 // 2. If there is OAuth token info passed from env var, indicating using token credential. (Note: this is only for testing)
 // 3. Otherwise use shared key.
 func getBlobFSCredentialType() (common.CredentialType, error) {
-	if oAuthTokenExists() {
-		return common.ECredentialType.OAuthToken(), nil
-	}
+	// TODO uncomment before merging
+	//if oAuthTokenExists() {
+	//	return common.ECredentialType.OAuthToken(), nil
+	//}
 
 	name := os.Getenv("ACCOUNT_NAME")
 	key := os.Getenv("ACCOUNT_KEY")
@@ -231,6 +232,10 @@ func getCredentialType(ctx context.Context, raw rawFromToInfo) (credentialType c
 	case common.EFromTo.BlobTrash():
 		// For BlobTrash direction, use source as resource URL, and it should not be public access resource.
 		if credentialType, err = getBlobCredentialType(ctx, raw.source, false, raw.sourceSAS != ""); err != nil {
+			return common.ECredentialType.Unknown(), err
+		}
+	case common.EFromTo.BlobFSTrash():
+		if credentialType, err = getBlobFSCredentialType(); err != nil {
 			return common.ECredentialType.Unknown(), err
 		}
 	case common.EFromTo.BlobLocal(), common.EFromTo.BlobPipe():
